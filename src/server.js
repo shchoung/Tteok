@@ -10,16 +10,16 @@ app.use(express.json());
 app.use(express.static(path.join(__dirname, '../public')));
 
 const MOCK = [
-  { id:'1', name:'밀도',        address:'서울 성동구 서울숲2길 32-14', lat:37.5445, lng:127.0374, level:5, level_name:'빵신',   representative_bread:'브리오슈 식빵', rating:4.9, review_count:312, level_score:96.2 },
-  { id:'2', name:'몽상클레르',  address:'서울 서초구 방배중앙로 57',    lat:37.4813, lng:126.9966, level:5, level_name:'빵신',   representative_bread:'몽블랑',       rating:4.8, review_count:287, level_score:93.5 },
-  { id:'3', name:'르빵',        address:'서울 마포구 와우산로29길 26',  lat:37.5538, lng:126.9227, level:4, level_name:'빵달인', representative_bread:'바게트',       rating:4.6, review_count:145, level_score:81.0 },
-  { id:'4', name:'브레드림',    address:'서울 용산구 이태원로 177',     lat:37.5347, lng:126.9947, level:4, level_name:'빵달인', representative_bread:'크루아상',     rating:4.5, review_count:98,  level_score:78.3 },
-  { id:'5', name:'동네빵네',    address:'서울 강남구 논현로 842',       lat:37.5172, lng:127.0391, level:3, level_name:'빵고수', representative_bread:'소금빵',       rating:4.3, review_count:54,  level_score:67.1 },
-  { id:'6', name:'행복베이커리',address:'서울 광진구 능동로 120',       lat:37.5484, lng:127.0858, level:2, level_name:'빵순이', representative_bread:'앙버터',       rating:4.1, review_count:23,  level_score:52.4 },
-  { id:'7', name:'새벽빵집',    address:'서울 은평구 통일로 684',       lat:37.6020, lng:126.9292, level:1, level_name:'빵린이', representative_bread:'식빵',         rating:3.8, review_count:7,   level_score:28.5 },
+  { id:'1', name:'떡보의하루',        address:'서울 성동구 서울숲2길 32-14', lat:37.5445, lng:127.0374, level:5, level_name:'떡신',   representative_bread:'인절미', rating:4.9, review_count:312, level_score:96.2 },
+  { id:'2', name:'이남장',  address:'서울 서초구 방배중앙로 57',    lat:37.4813, lng:126.9966, level:5, level_name:'떡신',   representative_bread:'흑임자떡',       rating:4.8, review_count:287, level_score:93.5 },
+  { id:'3', name:'궁중떡집',        address:'서울 마포구 와우산로29길 26',  lat:37.5538, lng:126.9227, level:4, level_name:'떡달인', representative_bread:'가래떡',       rating:4.6, review_count:145, level_score:81.0 },
+  { id:'4', name:'떡방림',    address:'서울 용산구 이태원로 177',     lat:37.5347, lng:126.9947, level:4, level_name:'떡달인', representative_bread:'약과',     rating:4.5, review_count:98,  level_score:78.3 },
+  { id:'5', name:'동네떡집',    address:'서울 강남구 논현로 842',       lat:37.5172, lng:127.0391, level:3, level_name:'떡고수', representative_bread:'백설기',       rating:4.3, review_count:54,  level_score:67.1 },
+  { id:'6', name:'행복떡집',address:'서울 광진구 능동로 120',       lat:37.5484, lng:127.0858, level:2, level_name:'떡순이', representative_bread:'쑥인절미',       rating:4.1, review_count:23,  level_score:52.4 },
+  { id:'7', name:'새벽떡집',    address:'서울 은평구 통일로 684',       lat:37.6020, lng:126.9292, level:1, level_name:'떡린이', representative_bread:'찹쌀떡',         rating:3.8, review_count:7,   level_score:28.5 },
 ];
 
-const LEVEL_NAME = { 1:'빵린이', 2:'빵순이', 3:'빵고수', 4:'빵달인', 5:'빵신' };
+const LEVEL_NAME = { 1:'떡린이', 2:'떡순이', 3:'떡고수', 4:'떡달인', 5:'떡신' };
 let useDB = false;
 
 // ── 자동 마이그레이션 (PostGIS 없이 lat/lng NUMERIC) ────────
@@ -147,7 +147,7 @@ async function autoMigrate() {
     console.log('✅ PostgreSQL 연결 성공:', info.now);
     await autoMigrate();
     useDB = true;
-    console.log('🍞 DB 모드로 서비스 시작');
+    console.log('🍡 DB 모드로 서비스 시작');
   } catch (err) {
     console.warn('⚠️  DB 초기화 실패, 목 데이터로 fallback:', err.message);
   }
@@ -172,8 +172,8 @@ function rowToJson(row) {
     lat:                 parseFloat(row.lat),
     lng:                 parseFloat(row.lng),
     level:               row.level,
-    level_name:          LEVEL_NAME[row.level] || '빵린이',
-    representative_bread: row.representative_bread || '시그니처 빵',
+    level_name:          LEVEL_NAME[row.level] || '떡린이',
+    representative_bread: row.representative_bread || '시그니처 떡',
     rating:              parseFloat(row.avg_rating) || 0,
     review_count:        row.review_count || 0,
     level_score:         parseFloat(row.level_score) || 0,
@@ -181,7 +181,7 @@ function rowToJson(row) {
   };
 }
 
-// ── API: 빵집 목록 ───────────────────────────────────────────
+// ── API: 떡집 목록 ───────────────────────────────────────────
 app.get('/api/bakeries', async (req, res) => {
   const { level, minScore, lat, lng, radius = 5000 } = req.query;
 
@@ -234,7 +234,7 @@ app.get('/api/bakeries', async (req, res) => {
   }
 });
 
-// ── API: 빵집 단건 ───────────────────────────────────────────
+// ── API: 떡집 단건 ───────────────────────────────────────────
 app.get('/api/bakeries/:id', async (req, res) => {
   if (!useDB) {
     const b = MOCK.find(b => b.id === req.params.id);
@@ -242,7 +242,7 @@ app.get('/api/bakeries/:id', async (req, res) => {
   }
   try {
     const { rows } = await pool.query(`SELECT * FROM bakeries WHERE id = $1`, [req.params.id]);
-    if (!rows.length) return res.status(404).json({ success: false, message: '빵집을 찾을 수 없어요' });
+    if (!rows.length) return res.status(404).json({ success: false, message: '떡집을 찾을 수 없어요' });
     res.json({ success: true, data: rowToJson(rows[0]) });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
@@ -284,11 +284,11 @@ app.get('/api/bakeries/:id/reviews', async (req, res) => {
 
 // ── 헬스체크 ─────────────────────────────────────────────────
 app.get('/health', async (req, res) => {
-  const status = { service: '빵친자', mode: useDB ? 'db' : 'mock', timestamp: new Date().toISOString() };
+  const status = { service: '떡친자', mode: useDB ? 'db' : 'mock', timestamp: new Date().toISOString() };
   if (useDB) {
     try { await pool.query('SELECT 1'); status.db = 'connected'; } catch { status.db = 'error'; }
   }
   res.json(status);
 });
 
-app.listen(PORT, () => console.log(`🍞 빵친자 서버 실행 중 → http://localhost:${PORT}`));
+app.listen(PORT, () => console.log(`🍡 떡친자 서버 실행 중 → http://localhost:${PORT}`));
