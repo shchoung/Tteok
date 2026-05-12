@@ -1,6 +1,6 @@
-# 🍞 빵친자
+# 🍞 떡친자
 
-빵집 지도 서비스 — 테스트 배포 버전
+떡집 지도 서비스 — 테스트 배포 버전
 
 ## 로컬 실행
 
@@ -16,7 +16,7 @@ npm run dev
 ```bash
 git init
 git add .
-git commit -m "feat: 빵친자 초기 배포"
+git commit -m "feat: 떡친자 초기 배포"
 git remote add origin https://github.com/YOUR_ID/bbangchincha.git
 git push -u origin main
 ```
@@ -36,9 +36,9 @@ git push -u origin main
 
 ## 현재 기능
 - OSM 기반 지도 (MapLibre GL)
-- 빵집 레벨별 마커 (🥖🥐🧁🍞👑)
-- 레벨 필터 (빵신/빵달인/빵고수/빵순이/빵린이)
-- 빵집 카드 사이드패널
+- 떡집 레벨별 마커 (🥖🥐🧁🍞👑)
+- 레벨 필터 (떡신/떡달인/떡고수/떡순이/떡린이)
+- 떡집 카드 사이드패널
 - 마커 클릭 → 팝업 + 지도 이동
 - `/api/bakeries` REST API (목 데이터)
 - `/health` 헬스체크 엔드포인트

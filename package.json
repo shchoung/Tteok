@@ -1,7 +1,7 @@
 {
   "name": "bbangchincha",
   "version": "1.0.0",
-  "description": "빵친자 - 빵집 지도 서비스",
+  "description": "떡친자 - 떡집 지도 서비스",
   "main": "src/server.js",
   "scripts": {
     "start": "node src/server.js",
