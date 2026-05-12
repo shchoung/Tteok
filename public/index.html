@@ -6,7 +6,7 @@
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
-  <title>빵친자 🍞</title>
+  <title>떡친자 🍡</title>
   <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@3.6.2/dist/maplibre-gl.css">
   <script src="https://unpkg.com/maplibre-gl@3.6.2/dist/maplibre-gl.js"></script>
   <style>
@@ -124,7 +124,7 @@
     }
 
     /* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-       빵집 카드
+       떡집 카드
     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
     .bakery-card {
       padding: 13px 16px; border-bottom: 1px solid #f5f2ec;
@@ -226,23 +226,23 @@
 </head>
 <body>
 
-<div id="loading"><div class="loading-box"><div class="spinner"></div> 빵집 불러오는 중...</div></div>
+<div id="loading"><div class="loading-box"><div class="spinner"></div> 떡집 불러오는 중...</div></div>
 
 <!-- 헤더 (지도 위 float) -->
 <div id="header">
   <div class="header-bar">
     <div class="hd-left">
-      <h1>🍞 빵친자</h1>
-      <span class="subtitle">빵 맛집 지도</span>
+      <h1>🍡 떡친자</h1>
+      <span class="subtitle">떡집 지도</span>
     </div>
   </div>
   <div class="filter-row" id="filters">
     <button class="filter-btn active" onclick="filterLevel(null,this)">전체</button>
-    <button class="filter-btn" onclick="filterLevel(5,this)">👑 빵신</button>
-    <button class="filter-btn" onclick="filterLevel(4,this)">🍞 빵달인</button>
-    <button class="filter-btn" onclick="filterLevel(3,this)">🧁 빵고수</button>
-    <button class="filter-btn" onclick="filterLevel(2,this)">🥐 빵순이</button>
-    <button class="filter-btn" onclick="filterLevel(1,this)">🥖 빵린이</button>
+    <button class="filter-btn" onclick="filterLevel(5,this)">👑 떡신</button>
+    <button class="filter-btn" onclick="filterLevel(4,this)">🍱 떡달인</button>
+    <button class="filter-btn" onclick="filterLevel(3,this)">🍙 떡고수</button>
+    <button class="filter-btn" onclick="filterLevel(2,this)">🍘 떡순이</button>
+    <button class="filter-btn" onclick="filterLevel(1,this)">🎑 떡린이</button>
   </div>
 </div>
 
@@ -253,7 +253,7 @@
 <div id="sheet">
   <div class="sheet-handle"></div>
   <div class="sheet-title-bar" onclick="toggleSheet()">
-    <span class="sheet-title">빵집 목록</span>
+    <span class="sheet-title">떡집 목록</span>
     <span class="sheet-count" id="cnt">0곳</span>
     <span class="sheet-toggle">⌃</span>
   </div>
@@ -264,11 +264,11 @@
 
 <script>
 const LEVEL_META = {
-  1:{icon:'🥖',color:'#854f0b',bg:'#faeeda',name:'빵린이'},
-  2:{icon:'🥐',color:'#0f6e56',bg:'#e1f5ee',name:'빵순이'},
-  3:{icon:'🧁',color:'#185fa5',bg:'#e6f1fb',name:'빵고수'},
-  4:{icon:'🍞',color:'#993c1d',bg:'#faece7',name:'빵달인'},
-  5:{icon:'👑',color:'#534ab7',bg:'#eeedfe',name:'빵신'},
+  1:{icon:'🎑',color:'#854f0b',bg:'#faeeda',name:'떡린이'},
+  2:{icon:'🍘',color:'#0f6e56',bg:'#e1f5ee',name:'떡순이'},
+  3:{icon:'🍙',color:'#185fa5',bg:'#e6f1fb',name:'떡고수'},
+  4:{icon:'🍱',color:'#993c1d',bg:'#faece7',name:'떡달인'},
+  5:{icon:'🍡',color:'#534ab7',bg:'#eeedfe',name:'떡신'},
 };
 
 let map, allBakeries=[], markers=[], selectedId=null;
@@ -310,7 +310,7 @@ function popupHTML(b, m) {
   return `
     <div class="popup-inner">
       <div class="popup-name">${m.icon} ${b.name}</div>
-      <div class="popup-bread">대표 빵 · ${b.representative_bread}</div>
+      <div class="popup-bread">대표 떡 · ${b.representative_bread}</div>
       <div class="popup-score">
         <span>⭐ ${b.rating}</span>
         <div class="score-bar-wrap"><div class="score-bar" style="width:${b.level_score}%"></div></div>
@@ -397,7 +397,7 @@ function renderMarkers(list) {
 // ── 사이드/바텀 리스트 ───────────────────────────────────────
 function renderList(list) {
   const el = document.getElementById('bakery-list');
-  if (!list.length) { el.innerHTML='<div class="empty">빵집이 없어요 🥺</div>'; return; }
+  if (!list.length) { el.innerHTML='<div class="empty">떡집이 없어요 🥺</div>'; return; }
   const sorted = [...list].sort((a,b) => b.level_score - a.level_score);
   el.innerHTML = sorted.map(b => {
     const m = LEVEL_META[b.level];
@@ -426,7 +426,7 @@ function renderList(list) {
   }).join('');
 }
 
-// ── 빵집 선택 ────────────────────────────────────────────────
+// ── 떡집 선택 ────────────────────────────────────────────────
 function selectBakery(id, fromList=false) {
   const prev = selectedId;
   selectedId = id;
