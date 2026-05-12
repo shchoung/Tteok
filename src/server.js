@@ -23,7 +23,103 @@ const MOCK = [
 const LEVEL_NAME = { 1:'빵린이', 2:'빵순이', 3:'빵고수', 4:'빵달인', 5:'빵신' };
 let useDB = false;
 
-// ── 시작 시 DB 연결 확인 ────────────────────────────────────
+// ── 자동 마이그레이션 구문 목록 ─────────────────────────────
+const MIGRATION_STEPS = [
+  { label: 'PostGIS',              sql: `CREATE EXTENSION IF NOT EXISTS postgis` },
+  { label: 'uuid-ossp',            sql: `CREATE EXTENSION IF NOT EXISTS "uuid-ossp"` },
+  { label: 'bakeries 테이블',      sql: `
+    CREATE TABLE IF NOT EXISTS bakeries (
+      id                   UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+      kakao_id             VARCHAR(20) UNIQUE,
+      name                 VARCHAR(100) NOT NULL,
+      address              TEXT, phone VARCHAR(20), url TEXT,
+      geom                 GEOMETRY(Point, 4326) NOT NULL,
+      category             VARCHAR(100),
+      source               VARCHAR(20) DEFAULT 'kakao',
+      representative_bread VARCHAR(100), icon_url TEXT,
+      level                SMALLINT DEFAULT 1 CHECK (level BETWEEN 1 AND 5),
+      level_score          NUMERIC(5,2) DEFAULT 0,
+      avg_rating           NUMERIC(3,2) DEFAULT 0,
+      review_count         INTEGER DEFAULT 0,
+      avg_daily_sales      INTEGER DEFAULT 0,
+      crawled_at TIMESTAMPTZ, created_at TIMESTAMPTZ DEFAULT NOW(), updated_at TIMESTAMPTZ DEFAULT NOW()
+    )` },
+  { label: '공간 인덱스',   sql: `CREATE INDEX IF NOT EXISTS idx_bakeries_geom  ON bakeries USING GIST (geom)` },
+  { label: 'level 인덱스',  sql: `CREATE INDEX IF NOT EXISTS idx_bakeries_level ON bakeries (level)` },
+  { label: 'reviews 테이블', sql: `
+    CREATE TABLE IF NOT EXISTS reviews (
+      id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+      bakery_id UUID NOT NULL REFERENCES bakeries(id) ON DELETE CASCADE,
+      user_id UUID, rating SMALLINT NOT NULL CHECK (rating BETWEEN 1 AND 5),
+      content TEXT, bread_name VARCHAR(100), created_at TIMESTAMPTZ DEFAULT NOW()
+    )` },
+  { label: 'sales_reports 테이블', sql: `
+    CREATE TABLE IF NOT EXISTS sales_reports (
+      id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+      bakery_id UUID NOT NULL REFERENCES bakeries(id) ON DELETE CASCADE,
+      reported_at DATE NOT NULL DEFAULT CURRENT_DATE,
+      daily_sales INTEGER NOT NULL CHECK (daily_sales >= 0),
+      source VARCHAR(20) DEFAULT 'owner', created_at TIMESTAMPTZ DEFAULT NOW()
+    )` },
+  { label: 'crawl_logs 테이블', sql: `
+    CREATE TABLE IF NOT EXISTS crawl_logs (
+      id SERIAL PRIMARY KEY, source VARCHAR(20),
+      total INTEGER DEFAULT 0, inserted INTEGER DEFAULT 0,
+      updated INTEGER DEFAULT 0, skipped INTEGER DEFAULT 0,
+      error TEXT, ran_at TIMESTAMPTZ DEFAULT NOW()
+    )` },
+  { label: '레벨 계산 함수', sql: `
+    CREATE OR REPLACE FUNCTION calc_bakery_level(
+      p_avg_rating NUMERIC, p_review_count INTEGER, p_avg_sales INTEGER
+    ) RETURNS TABLE (level SMALLINT, score NUMERIC) AS $$
+    DECLARE total_score NUMERIC;
+    BEGIN
+      total_score :=
+        COALESCE(p_avg_rating,0)/5.0*40 +
+        CASE WHEN p_review_count>=50 THEN 30 WHEN p_review_count>=20 THEN 22.5 WHEN p_review_count>=5 THEN 15 ELSE 0 END +
+        CASE WHEN p_avg_sales>=200 THEN 30 WHEN p_avg_sales>=100 THEN 22.5 WHEN p_avg_sales>=30 THEN 15 ELSE 0 END;
+      RETURN QUERY SELECT
+        CASE WHEN total_score>=90 THEN 5 WHEN total_score>=75 THEN 4 WHEN total_score>=60 THEN 3 WHEN total_score>=40 THEN 2 ELSE 1 END::SMALLINT,
+        ROUND(total_score,2);
+    END; $$ LANGUAGE plpgsql` },
+  { label: '레벨 트리거 함수', sql: `
+    CREATE OR REPLACE FUNCTION refresh_bakery_level() RETURNS TRIGGER AS $$
+    DECLARE stats RECORD; lvl RECORD;
+    BEGIN
+      SELECT AVG(r.rating)::NUMERIC(3,2) AS avg_rating, COUNT(r.id)::INTEGER AS review_count,
+        COALESCE((SELECT AVG(daily_sales)::INTEGER FROM sales_reports
+          WHERE bakery_id=NEW.bakery_id AND reported_at>=CURRENT_DATE-INTERVAL '30 days'),0) AS avg_sales
+      INTO stats FROM reviews r WHERE r.bakery_id=NEW.bakery_id;
+      SELECT * INTO lvl FROM calc_bakery_level(stats.avg_rating,stats.review_count,stats.avg_sales);
+      UPDATE bakeries SET avg_rating=stats.avg_rating, review_count=stats.review_count,
+        avg_daily_sales=stats.avg_sales, level=lvl.level, level_score=lvl.score, updated_at=NOW()
+      WHERE id=NEW.bakery_id;
+      RETURN NEW;
+    END; $$ LANGUAGE plpgsql` },
+  { label: '레벨 트리거', sql: `
+    CREATE OR REPLACE TRIGGER trg_review_level
+      AFTER INSERT OR UPDATE ON reviews
+      FOR EACH ROW EXECUTE FUNCTION refresh_bakery_level()` },
+];
+
+async function autoMigrate() {
+  console.log('📦 DB 스키마 확인/생성 중...');
+  for (const step of MIGRATION_STEPS) {
+    try {
+      await pool.query(step.sql.trim());
+      console.log('  ✅', step.label);
+    } catch (err) {
+      if (err.message.includes('already exists')) {
+        console.log('  ⏭ ', step.label, '(이미 존재)');
+      } else {
+        throw new Error(step.label + ' 실패: ' + err.message);
+      }
+    }
+  }
+  console.log('✅ 스키마 준비 완료');
+}
+
+// ── 시작 시 DB 연결 + 자동 마이그레이션 ────────────────────
 (async () => {
   if (!process.env.DATABASE_URL) {
     console.log('⚠️  DATABASE_URL 없음 → 목 데이터 모드');
@@ -31,11 +127,13 @@ let useDB = false;
   }
   try {
     const info = await checkConnection();
-    useDB = true;
-    console.log('✅ PostgreSQL 연결 성공 → DB 모드');
+    console.log('✅ PostgreSQL 연결 성공');
     console.log('   서버 시각:', info.now);
+    await autoMigrate();
+    useDB = true;
+    console.log('🍞 DB 모드로 서비스 시작');
   } catch (err) {
-    console.warn('⚠️  DB 연결 실패, 목 데이터로 fallback:', err.message);
+    console.warn('⚠️  DB 초기화 실패, 목 데이터로 fallback:', err.message);
   }
 })();
 
